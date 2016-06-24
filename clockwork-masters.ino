@@ -48,8 +48,10 @@ int ANALOG[ANALOG_INPUTS] = { 17, 18, 19 };
 int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
 
 // DIP switches
-#define DIP_SWITCHES 4
-int DIP[DIP_SWITCHES] = { 20, 21, 22, 23 };
+#define DIP_SWITCHES 6
+
+// DIP 1-4, 0 = Big board, 1 = Small board.
+int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
 
 // Working digital pins.
 // On at least one board, there's a faulty cable that causes sensors to start *on*.
