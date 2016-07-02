@@ -203,14 +203,18 @@ void loop() {
         DIRECTION[i] = -DIRECTION[i];
         
         // If we've just hit zero, then sleep
-        // if our rand functions say we should.
+        // this line for a random amount of time.
         if (VALUE[i] <= 0) {
           RAND_DELAY_IDLE[i] = random(RAND_DELAY_MIN[i], RAND_DELAY_MAX[i]);
         }
       }
-      // Set the pin value.
-      analogWrite(LINE[i], map(VALUE[i], 0, COUNT_TO[i], CURR_MIN_POWER[i], CURR_MAX_POWER[i]));
     }
+
+    // Either way, set the pin values even if we're sleeping, as
+    // sensor lines may have altered our values.
+
+    analogWrite(LINE[i], map(VALUE[i], 0, COUNT_TO[i], CURR_MIN_POWER[i], CURR_MAX_POWER[i]));
+
   }
   delay(SLEEP);
 }
