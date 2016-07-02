@@ -2,6 +2,9 @@
 // How many output pins do we have?
 #define OUTPUTS 3
 
+// Which dip switch says our accelerometer should add sparkle?
+#define DIP_ACCEL_TO_SPARKLE 3
+
 // Pins which we can do PWM on
 int LINE[OUTPUTS]       = { 3, 6, 9 };
 
@@ -53,10 +56,32 @@ int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
 // DIP 1-4, 0 = Big board, 1 = Small board.
 int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
 
+// Accelerometer readings
+int ACCEL_LAST[3] = { 0, 0, 0 };
+
+// Accelerometer sensitivity. We divide all readings by this before adding.
+// DO NOT MAKE ZERO YOU WILL END THE UNIVERSE!
+#define ACCEL_SENSIT 5
+
+// Sparkle added by accelerometer
+int Added_Sparkle = 0;
+
+// Each cycle, reduce sparkle by this percentage.
+#define SPARKLE_DECAY 1
+
 // Working digital pins.
 // On at least one board, there's a faulty cable that causes sensors to start *on*.
 // This diagnoses those and removes them from the circuit.
 int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0};
+
+// Low and high readings that we see at rest on the accelerometer.
+// These are for the freetronics version
+// #define ACCEL_LOW 255
+// #define ACCEL_HIGH 755
+
+// These are zero scaling versions
+#define ACCEL_LOW 0
+#define ACCEL_HIGH 1023
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -101,20 +126,16 @@ void setup() {
     CURR_MIN_POWER[i] = MIN_POWER[i];
   }
 
+  // Read starting values into our accelerometer tracker
+  for (i = 0; i < ANALOG_INPUTS; i++) {
+    ACCEL_LAST[i] = constrain(map(analogRead(ANALOG[i]),ACCEL_LOW,ACCEL_HIGH,0,1023),0,1023);
+  }
+
   Serial.begin(9600);
   Serial.print("Init complete");
 
   delay(1000);
 }
-
-// Low and high readings that we see at rest on the accelerometer.
-// These are for the freetronics version
-// #define ACCEL_LOW 255
-// #define ACCEL_HIGH 755
-
-// These are zero scaling versions
-#define ACCEL_LOW 0
-#define ACCEL_HIGH 1023
 
 // the loop routine runs over and over again forever:
 void loop() {
@@ -131,8 +152,10 @@ void loop() {
 
   Serial.print("DIP: ");
 
+  // NB, this FLIPS the bits as they come in. Our switches are connected
+  // to GND when theyre on, but our logic here exports them as "True" when on.
   for (i=0; i < DIP_SWITCHES; i++) {
-    int dip = digitalRead(DIP[i]);
+    int dip = ! digitalRead(DIP[i]);
     Serial.print(dip);
     Serial.print(" ");
   }
@@ -148,11 +171,26 @@ void loop() {
     // Munge our accel input to the full range of outputs.
     int mapped = constrain(map(analogRead(ANALOG[i]),ACCEL_LOW,ACCEL_HIGH,0,1023),0,1023);
 
-    // Use our accel input to set the delay between each pulse.
-    RAND_DELAY_MAX[i] = max(RAND_DELAY_MIN[i], mapped);
-
     Serial.print(mapped);
     Serial.print(") ");
+
+    // Based upon the status of the 4th switch (3rd from zero), we either
+    // base our delay between pulses based on the accelerometer input (original
+    // testing program), or we have accelerometer values increase brightness of
+    // our lines.
+
+    if (DIP[DIP_ACCEL_TO_SPARKLE]) {
+      // Add our difference to our sparkle.
+      // We may want to add a dead zone later.
+      Added_Sparkle += abs(mapped - ACCEL_LAST[i]) / 5;
+
+      // And save this as the last reading.
+      ACCEL_LAST[i] = mapped;
+    }
+    else {
+      // Use our accel input to set the delay between each pulse.
+      RAND_DELAY_MAX[i] = max(RAND_DELAY_MIN[i], mapped);
+    }
 
   }
 
@@ -177,7 +215,7 @@ void loop() {
     Serial.print("-");
     Serial.print(CURR_MAX_POWER[i]);
     Serial.print(" ");
-  }
+  }  
 
   Serial.print("\n");
 
@@ -211,10 +249,15 @@ void loop() {
     }
 
     // Either way, set the pin values even if we're sleeping, as
-    // sensor lines may have altered our values.
+    // sensor lines may have altered our values. We constrain this to 0-255
+    // as sparkle may overflow our max line values.
 
-    analogWrite(LINE[i], map(VALUE[i], 0, COUNT_TO[i], CURR_MIN_POWER[i], CURR_MAX_POWER[i]));
+    analogWrite(LINE[i], constrain(map(VALUE[i], 0, COUNT_TO[i], CURR_MIN_POWER[i], CURR_MAX_POWER[i])+Added_Sparkle,0,255));
 
   }
+
+  // Decay our sparkle.
+  Added_Sparkle = max(0, ((Added_Sparkle * (100 - SPARKLE_DECAY))/100) - 1);
+  
   delay(SLEEP);
 }
