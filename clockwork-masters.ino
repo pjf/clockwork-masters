@@ -211,7 +211,7 @@ void loop() {
     }
 
     // Shine increases the min power to make everythng more bright.
-    if (!digitalRead(HFE_SHINE)) {
+    if (!digitalRead(DIGITAL[HFE_SHINE])) {
       CURR_MIN_POWER[i] = min(MAX_POWER[i], CURR_MIN_POWER[i]+1);
     }
     else {
@@ -220,7 +220,7 @@ void loop() {
 
     // Quell drops down the max power until it reaches zero,
     // and allows us to have a completely dark suit.
-    if (!digitalRead(HFE_QUELL)) {
+    if (!digitalRead(DIGITAL[HFE_QUELL])) {
       CURR_MAX_POWER[i] = max(0, CURR_MAX_POWER[i]-1);
       CURR_MIN_POWER[i] = 0; // Quell lets us go completely dark.
     }
@@ -238,7 +238,7 @@ void loop() {
 
     // Pulse just causes any inactive lines to activate, and sets
     // everything to increase in brightness.
-    if (!digitalRead(HFE_PULSE)) {
+    if (!digitalRead(DIGITAL[HFE_PULSE])) {
 
       // Flip direction if we were decaying.
       if (DIRECTION[i] < 0) {
