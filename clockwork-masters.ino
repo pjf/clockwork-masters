@@ -83,6 +83,11 @@ int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0};
 #define ACCEL_LOW 0
 #define ACCEL_HIGH 1023
 
+// Which HFE switches do what
+#define HFE_QUELL 0
+#define HFE_SHINE 1
+#define HFE_PULSE 2
+
 // the setup routine runs once when you press reset:
 void setup() {
 
@@ -196,7 +201,7 @@ void loop() {
 
   Serial.print(" || PWR: ");
 
-  // For digital lines, if we see any active, that *increases* lights.
+  // Walk through our outputs, modified by each HFE if we see them.
   for (i=0; i < OUTPUTS; i++) {
 
     // Skip faulty lines.
@@ -204,13 +209,46 @@ void loop() {
       Serial.print("FAULT ");
       continue;
     }
-    
-    if (! digitalRead(DIGITAL[i])) {
+
+    // Shine increases the min power to make everythng more bright.
+    if (!digitalRead(HFE_SHINE)) {
       CURR_MIN_POWER[i] = min(MAX_POWER[i], CURR_MIN_POWER[i]+1);
     }
     else {
       CURR_MIN_POWER[i] = max(MIN_POWER[i], CURR_MIN_POWER[i]-1);
     }
+
+    // Quell drops down the max power until it reaches zero,
+    // and allows us to have a completely dark suit.
+    if (!digitalRead(HFE_QUELL)) {
+      CURR_MAX_POWER[i] = max(0, CURR_MAX_POWER[i]-1);
+      CURR_MIN_POWER[i] = 0; // Quell lets us go completely dark.
+    }
+    else {
+      // Restore max power back upwards.
+      // TODO: Sunrise effect?
+      CURR_MAX_POWER[i] = min(MAX_POWER[i], CURR_MAX_POWER[i]+1);
+
+      // If our line was underpowered (because we went dark) then
+      // bring it back towards its specified minimum.
+      if (CURR_MIN_POWER[i] < MIN_POWER[i]) {
+        CURR_MIN_POWER[i]++;
+      }
+    }
+
+    // Pulse just causes any inactive lines to activate, and sets
+    // everything to increase in brightness.
+    if (!digitalRead(HFE_PULSE)) {
+
+      // Flip direction if we were decaying.
+      if (DIRECTION[i] < 0) {
+        DIRECTION[i] = -DIRECTION[i];
+      }
+
+      // Activate line if not already active.
+      RAND_DELAY_IDLE[i] = 0;
+    }
+    
     Serial.print(CURR_MIN_POWER[i]);
     Serial.print("-");
     Serial.print(CURR_MAX_POWER[i]);
