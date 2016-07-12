@@ -17,6 +17,7 @@ int DIRECTION[OUTPUTS]  = { 1, 1, 1 };
 int COUNT_TO[OUTPUTS]  = { 600, 400, 300 };
 
 // Min/Maximum power for each output.
+// 0 is entirely off, 255 is full power.
 int MIN_POWER[OUTPUTS]      = {  5,  5,  5  };
 int MAX_POWER[OUTPUTS]      = {  255, 255, 255 };
 
@@ -36,31 +37,42 @@ int RAND_DELAY_MAX[OUTPUTS]  = { 1000, 2000, 1500 };
 // This gets set by our code.
 int RAND_DELAY_IDLE[OUTPUTS] = { 0, 0, 0 };
 
-// Sleep time in between each run. Having this reduces flicker.
+// Sleep time in between each run. Having this reduces flicker, or at least it did when running
+// on the LeoStick. Altering this can change the timing of everything else (lights, accelerometer,
+// quickness to react to sensor changes) so use with care.
 int SLEEP = 10;
 
-// This just shows we're on.
+// This just shows we're on. On most boards LED 13 is on the controller itself.
 int PWR_LED = 13;
 
-// Analog inputs
+// Analog input lines. In our design these are hooked to an accelerometer, but
+// any analog input will do.
 #define ANALOG_INPUTS 3
 int ANALOG[ANALOG_INPUTS] = { 17, 18, 19 };
 
-// Digital inputs
+// Digital inputs lines. In our design these are hooked to hall-effect sensors.
+// We expect these to be pulled LOW when activated. If they're not connected,
+// then that's cool, we use the internal pull-up resistors to stop them floating.
 #define DIGITAL_INPUTS 4
 int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
 
 // DIP switches
+// These are both physical switches and lines that might be soldered to ground to
+// indicate particular configurations. In our case 23-20 are physical switches
+// (listed in reverse order because the "first" sitch on our board is on pin 23, and
+// the "last" on pin 20), and pins 0 and 1 are hooked to ground on our two boards that
+// are missing DIP switches entirely. Again, these can be unconnected; we use pull-ups
+// to make sure they don't float.
 #define DIP_SWITCHES 6
 
 // DIP 1-4, 0 = Big board, 1 = Small board.
 int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
 
-// Accelerometer readings
+// Accelerometer readings. These are used to keep state; changes in readings make us glow more.
 int ACCEL_LAST[3] = { 0, 0, 0 };
 
 // Accelerometer sensitivity. We divide all readings by this before adding.
-// DO NOT MAKE ZERO YOU WILL END THE UNIVERSE!
+// DO NOT MAKE ZERO OR YOU WILL END THE UNIVERSE!
 #define ACCEL_SENSIT 5
 
 // Sparkle added by accelerometer
@@ -70,11 +82,16 @@ int Added_Sparkle = 0;
 #define SPARKLE_DECAY 1
 
 // Working digital pins.
-// On at least one board, there's a faulty cable that causes sensors to start *on*.
-// This diagnoses those and removes them from the circuit.
-int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0};
+// On at least one board, there's a faulty cable that causes sensors to start *on* (ie: grounded).
+// This diagnoses those and removes them from the circuit. It sucks losing a sensor, but it's better
+// than a faulty switch hitting us all the time.
+int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0 };
 
 // Low and high readings that we see at rest on the accelerometer.
+// These don't really get used in our code anymore, and will be removed shortly.
+//
+// TODO: Remove these and the code that uses them.
+//
 // These are for the freetronics version
 // #define ACCEL_LOW 255
 // #define ACCEL_HIGH 755
@@ -83,15 +100,15 @@ int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0};
 #define ACCEL_LOW 0
 #define ACCEL_HIGH 1023
 
-// Which HFE switches do what
-#define HFE_QUELL 0
-#define HFE_SHINE 1
-#define HFE_PULSE 2
+// Which HES switches do what
+#define HFE_QUELL 0 // Turn lights off.
+#define HFE_SHINE 1 // Brighten all lights.
+#define HFE_PULSE 2 // Activate and increase pulsing.
 
-// the setup routine runs once when you press reset:
+// The setup routine runs once when our board is powered on.
 void setup() {
 
-  // Power LED
+  // Set the power LED, so we can see we're running.
   pinMode(PWR_LED, OUTPUT);
   digitalWrite(PWR_LED, HIGH);
   
@@ -109,8 +126,8 @@ void setup() {
 
   // And the sensor pins
   for (i = 0; i < DIGITAL_INPUTS; i++) {
-    // HFEs are high for no magnets nearby. I'm *so glad*
-    // the Teensy has internal pull-ups that can be enabled.
+    // Hall Effect Sensors are high for no magnets nearby. We pull
+    // the lines up anyway because our sensors may not be connected.
     pinMode(DIGITAL[i], INPUT_PULLUP);
   }
 
@@ -120,29 +137,33 @@ void setup() {
   }
 
   // Test for faulty sensors. Any digital line that is LOW
-  // has a short and should not be used.
+  // has a short and should not be used. This means it's important
+  // not to hold a magnet near a sensor while the board is turning on.
   for (i = 0; i < DIGITAL_INPUTS; i++) {
     DIGITAL_FAULTY[i] = ! digitalRead(DIGITAL[i]);
   }
 
-  // Set up our power levels
+  // Initalise our power levels.
   for (i = 0; i < OUTPUTS; i++) {
     CURR_MAX_POWER[i] = MAX_POWER[i];
     CURR_MIN_POWER[i] = MIN_POWER[i];
   }
 
-  // Read starting values into our accelerometer tracker
+  // Read starting values into our accelerometer tracker. These get scaled and constrainted to
+  // a 0-1023 range.
   for (i = 0; i < ANALOG_INPUTS; i++) {
     ACCEL_LAST[i] = constrain(map(analogRead(ANALOG[i]),ACCEL_LOW,ACCEL_HIGH,0,1023),0,1023);
   }
 
+  // Init our serial monitor, so if a debugger is running it can see what we're doing.
   Serial.begin(9600);
   Serial.print("Init complete");
 
+  // TODO: I don't think we need this delay here any more. We can just fire straight into the code.
   delay(1000);
 }
 
-// the loop routine runs over and over again forever:
+// Our main loop runs forever. Here's where all the fancy things happen.
 void loop() {
   int i;
 
@@ -159,6 +180,9 @@ void loop() {
 
   // NB, this FLIPS the bits as they come in. Our switches are connected
   // to GND when theyre on, but our logic here exports them as "True" when on.
+
+  // TODO: If we're reading these, we should be saving them too, rather than having direct
+  // reads as part of the main loop.
   for (i=0; i < DIP_SWITCHES; i++) {
     int dip = ! digitalRead(DIP[i]);
     Serial.print(dip);
@@ -167,7 +191,8 @@ void loop() {
 
   Serial.print("|| ");  
 
-  // For now, we're going to have our max light delay determined by the accelrometer inputs.
+  // Walk through our analog lines.
+  // TODO: Count based on actual inputs, not 'OUTPUTS'! x_x
   for (i=0; i < OUTPUTS; i++) {
     int val = analogRead(ANALOG[i]);
     Serial.print(val);
@@ -179,6 +204,9 @@ void loop() {
     Serial.print(mapped);
     Serial.print(") ");
 
+    // TODO: Just have the accelerometers add to sparkle.
+    // TODO: Have the switch DISABLE the accelerometer.
+
     // Based upon the status of the 4th switch (3rd from zero), we either
     // base our delay between pulses based on the accelerometer input (original
     // testing program), or we have accelerometer values increase brightness of
@@ -189,7 +217,7 @@ void loop() {
       // We may want to add a dead zone later.
 
       // TODO: Add a deadzone. #2
-      
+      // TODO: What's that five doing? Replace with ACCEL_SENSIT!
       Added_Sparkle += abs(mapped - ACCEL_LAST[i]) / 5;
 
       // And save this as the last reading.
@@ -204,7 +232,8 @@ void loop() {
 
   Serial.print(" || PWR: ");
 
-  // Walk through our outputs, modified by each HFE if we see them.
+  // Walk through our sensors, modified by each hall-effect sensor if we see them.
+  // TODO: This should be counting on sensor lines, not OUTPUTS! x_x
   for (i=0; i < OUTPUTS; i++) {
 
     // Skip faulty lines.
@@ -241,6 +270,7 @@ void loop() {
 
     // Pulse just causes any inactive lines to activate, and sets
     // everything to increase in brightness.
+    // TODO: Increase the speed of pulses while these are active, maybe by bumping direction values.
     if (!digitalRead(DIGITAL[HFE_PULSE])) {
 
       // Flip direction if we were decaying.
@@ -260,7 +290,7 @@ void loop() {
 
   Serial.print("\n");
 
-  // Now do our pulsing.
+  // Now do our pulsing. This actually sets our light values.
   for (i = 0; i < OUTPUTS; i++) {
 
     // If we're idling, then simply decrement that counter and skip
