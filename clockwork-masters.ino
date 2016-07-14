@@ -5,7 +5,8 @@
 // How many output pins do we have?
 #define OUTPUTS 3
 
-// Which dip switch says our accelerometer should add sparkle?
+// Which dip switches should do what?
+#define DIP_SHOW_STATE 0
 #define DIP_ACCEL_TO_SPARKLE 3
 
 // Pins which we can do PWM on
@@ -189,7 +190,7 @@ void loop() {
   Serial.print("DIP: ");
 
   // NB, this FLIPS the bits as they come in. Our switches are connected
-  // to GND when theyre on, but our logic here exports them as "True" when on.
+  // to GND when they're on, but our logic here exports them as "True" when on.
 
   // TODO: If we're reading these, we should be saving them too, rather than having direct
   // reads as part of the main loop.
@@ -198,6 +199,12 @@ void loop() {
     Serial.print(dip);
     Serial.print(" ");
   }
+
+  // The state DIP switch is used for debugging. We show our power light
+  // based upon its value. We *do not* flip the logic here, as boards
+  // without dip switches (using the pull-up only) should have their light set
+  // on.
+  digitalWrite(PWR_LED, digitalRead(DIP[DIP_SHOW_STATE]));
 
   Serial.print("|| ");  
 
