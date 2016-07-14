@@ -77,7 +77,7 @@ int ACCEL_LAST[3] = { 0, 0, 0 };
 
 // Accelerometer sensitivity. We divide all readings by this before adding.
 // DO NOT MAKE ZERO OR YOU WILL END THE UNIVERSE!
-#define ACCEL_SENSIT 5
+#define ACCEL_SENSIT 8
 
 // Accelerometer deadzone. This means that small movements and thermal noise won't
 // be listened to, but allows larger movements to still be counted. The larger this
