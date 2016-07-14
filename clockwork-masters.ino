@@ -79,6 +79,11 @@ int ACCEL_LAST[3] = { 0, 0, 0 };
 // DO NOT MAKE ZERO OR YOU WILL END THE UNIVERSE!
 #define ACCEL_SENSIT 5
 
+// Accelerometer deadzone. This means that small movements and thermal noise won't
+// be listened to, but allows larger movements to still be counted. The larger this
+// value, the larger a change in acceleration is required to register.
+#define ACCEL_DEADZONE 10
+
 // Sparkle added by accelerometer
 int Added_Sparkle = 0;
 
@@ -210,6 +215,8 @@ void loop() {
 
   // Walk through our analog lines.
   // TODO: Count based on actual inputs, not 'OUTPUTS'! x_x
+  int potential_sparkle = 0;
+  
   for (i=0; i < OUTPUTS; i++) {
     int val = analogRead(ANALOG[i]);
     Serial.print(val);
@@ -230,18 +237,19 @@ void loop() {
     // our lines.
 
     if (DIP[DIP_ACCEL_TO_SPARKLE]) {
-      // Add our difference to our sparkle.
-      // We may want to add a dead zone later.
-
-      // TODO: Add a deadzone. #2
-      Added_Sparkle += abs(mapped - ACCEL_LAST[i]) / ACCEL_SENSIT;
+      // Add our difference to our potential sparkle.
+      potential_sparkle += abs(mapped - ACCEL_LAST[i]) / ACCEL_SENSIT;
 
       // And save this as the last reading.
       ACCEL_LAST[i] = mapped;
     }
 
     // Otherwise our accelerometer does nothing.
+  }
 
+  // Add our sparkle iff it's greater than our deadzone.
+  if (potential_sparkle > ACCEL_DEADZONE) {
+    Added_Sparkle += potential_sparkle;
   }
 
   Serial.print(" || PWR: ");
