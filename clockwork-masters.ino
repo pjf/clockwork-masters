@@ -234,8 +234,7 @@ void loop() {
       // We may want to add a dead zone later.
 
       // TODO: Add a deadzone. #2
-      // TODO: What's that five doing? Replace with ACCEL_SENSIT!
-      Added_Sparkle += abs(mapped - ACCEL_LAST[i]) / 5;
+      Added_Sparkle += abs(mapped - ACCEL_LAST[i]) / ACCEL_SENSIT;
 
       // And save this as the last reading.
       ACCEL_LAST[i] = mapped;
