@@ -226,10 +226,8 @@ void loop() {
       // And save this as the last reading.
       ACCEL_LAST[i] = mapped;
     }
-    else {
-      // Use our accel input to set the delay between each pulse.
-      RAND_DELAY_MAX[i] = max(RAND_DELAY_MIN[i], mapped);
-    }
+
+    // Otherwise our accelerometer does nothing.
 
   }
 
