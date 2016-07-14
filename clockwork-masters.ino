@@ -162,8 +162,15 @@ void setup() {
   Serial.begin(9600);
   Serial.print("Init complete");
 
-  // TODO: I don't think we need this delay here any more. We can just fire straight into the code.
-  delay(1000);
+  // Pulse our power light to show we're running.
+  // This is configured for four pulses in one second.
+  for (i=0; i < 4; i++) {
+    digitalWrite(PWR_LED, LOW);
+    delay(125);
+    digitalWrite(PWR_LED, HIGH);
+    delay(125);
+  }
+
 }
 
 // Our main loop runs forever. Here's where all the fancy things happen.
@@ -330,6 +337,6 @@ void loop() {
 
   // Decay our sparkle.
   Added_Sparkle = max(0, ((Added_Sparkle * (100 - SPARKLE_DECAY))/100) - 1);
-  
+ 
   delay(SLEEP);
 }
