@@ -32,8 +32,8 @@ int CURR_MIN_POWER[OUTPUTS];
 // Minimum and maximum delays between random pulses.
 // Zero means no delay, both the same means a fixed
 // delay.
-int RAND_DELAY_MIN[OUTPUTS]  = { 200, 200, 200 };
-int RAND_DELAY_MAX[OUTPUTS]  = { 1000, 2000, 1500 };
+int RAND_DELAY_MIN[OUTPUTS]  = { 100, 100, 100 };
+int RAND_DELAY_MAX[OUTPUTS]  = { 500, 1000, 750 };
 
 // If anything in here is non-zero, we decrement it
 // rather than incrementing or decrementing our pulse.
