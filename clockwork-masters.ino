@@ -1,3 +1,6 @@
+// Clockwork Butterfly controller code.
+// Paul '@pjf' Fenwick, 2016
+// You can use and/or distribute this code under the GPLv2 license.
 
 // How many output pins do we have?
 #define OUTPUTS 3
