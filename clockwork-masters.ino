@@ -169,11 +169,13 @@ void setup() {
   Serial.print("Init complete");
 
   // Pulse our power light to show we're running.
-  // This is configured for four pulses in one second.
-  for (i=0; i < 4; i++) {
+  // Also pulse our lines to test they're working.
+  for (i=0; i < OUTPUTS; i++) {
     digitalWrite(PWR_LED, LOW);
-    delay(125);
+    analogWrite(LINE[i], 255);
+    delay(250);
     digitalWrite(PWR_LED, HIGH);
+    analogWrite(LINE[i], 0);
     delay(125);
   }
 
