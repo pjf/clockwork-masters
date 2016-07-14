@@ -13,12 +13,12 @@
 int LINE[OUTPUTS]       = { 3, 6, 9 };
 
 // Starting values (brightness) and directions for each line.
-int VALUE[OUTPUTS]      = { 20, 60, 120  };
+int VALUE[OUTPUTS]      = { 5, 5, 5  };
 int DIRECTION[OUTPUTS]  = { 1, 1, 1 };
 
 // Maximum value to count to per line.
 // Higher values = slower pulses
-int COUNT_TO[OUTPUTS]  = { 600, 400, 300 };
+int COUNT_TO[OUTPUTS]  = { 50, 50, 50 };
 
 // Min/Maximum power for each output.
 // 0 is entirely off, 255 is full power.
@@ -34,7 +34,7 @@ int CURR_MIN_POWER[OUTPUTS];
 // Zero means no delay, both the same means a fixed
 // delay.
 int RAND_DELAY_MIN[OUTPUTS]  = {  50,  50,  50 };
-int RAND_DELAY_MAX[OUTPUTS]  = { 400, 400, 400 };
+int RAND_DELAY_MAX[OUTPUTS]  = { 200, 200, 200 };
 
 // If anything in here is non-zero, we decrement it
 // rather than incrementing or decrementing our pulse.
