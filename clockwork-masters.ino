@@ -168,15 +168,22 @@ void setup() {
   Serial.begin(9600);
   Serial.print("Init complete");
 
+  // TODO: Skip all this if a DIP-switch tells us to.
+
+  // Half a second after power on don't do anything, so
+  // our humans can look at the line which may be faulty.
+  digitalWrite(PWR_LED, LOW);
+  delay(500);
+
   // Pulse our power light to show we're running.
   // Also pulse our lines to test they're working.
   for (i=0; i < OUTPUTS; i++) {
-    digitalWrite(PWR_LED, LOW);
-    analogWrite(LINE[i], 255);
-    delay(250);
     digitalWrite(PWR_LED, HIGH);
+    analogWrite(LINE[i], 255);
+    delay(1000);
+    digitalWrite(PWR_LED, LOW);
     analogWrite(LINE[i], 0);
-    delay(125);
+    delay(250);
   }
 
 }
