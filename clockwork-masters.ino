@@ -317,7 +317,7 @@ void loop() {
 
     // If we're idling, then simply decrement that counter and skip
     // this line for now.
-    if (RAND_DELAY_IDLE[i]) {
+    if (RAND_DELAY_IDLE[i] > 0) {
       RAND_DELAY_IDLE[i]--;
     }
     
