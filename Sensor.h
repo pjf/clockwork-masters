@@ -1,10 +1,7 @@
 #ifndef SENSOR_H
 #define SENSOR_H
 
-#include <core_pins.h>
-
-// What type do our pins (and hence digitalRead) use?
-typedef uint8_t pin_t;
+#include "Types.h"
 
 class Sensor {
   private:
