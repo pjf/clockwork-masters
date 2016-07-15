@@ -2,7 +2,7 @@
 #include "WProgram.h"
 
 // Constructor
-Light::Light(pin_t pin, int idle_min = 50, int idle_max = 200) {
+Light::Light(pin_t pin, int idle_min, int idle_max) {
   _pin       = pin;
   _value     = 0;
   _direction = 1;
@@ -14,6 +14,10 @@ Light::Light(pin_t pin, int idle_min = 50, int idle_max = 200) {
   _idle_min = idle_min;
   _idle_max = idle_max;
   _idle = 0;
+
+  // Initialise the hardware itself.
+  pinMode(_pin, OUTPUT);     
+  analogWrite(_pin,0);
 }
 
 const int absolute_min_pwr = 0;
@@ -26,14 +30,7 @@ void Light::update(int bias) {
   // Update our light cycle.
   _cycle();
 
-  // Map our cycle to a brightness, plus our bias.
-  analogWrite(
-    _pin,
-    constrain(
-      map(_value, 0, _count_to, _curr_min_power, _curr_max_power) + bias,
-      absolute_min_pwr, absolute_max_pwr
-    )
-  );
+  set_power( map(_value, 0, _count_to, _curr_min_power, _curr_max_power) + bias );
 }
 
 // Cycles our lights. Intended to be called by update.
@@ -62,6 +59,13 @@ void Light::_cycle() {
   if (_value == 0 || _value == _count_to) {
     _direction = -_direction;
   }
-  
+}
+
+// Sets power directly. Will not change internal state, so
+// this will be overwritten to the next call to update().
+//
+// This auto-constrains to 0-255, but I'm not sure if we really need this.
+void Light::set_power(int power) {
+  analogWrite(_pin, constrain( power, absolute_min_pwr, absolute_max_pwr ) );
 }
 

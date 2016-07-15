@@ -19,9 +19,9 @@ class Light {
     void  _cycle();
   
   public:
-    Light(pin_t pin, int idle_min, int idle_max);
+    Light(pin_t pin, int idle_min = 50, int idle_max = 200);
     void update(int bias);
-    
+    void set_power(int power);
 };
 
 #endif
