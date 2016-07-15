@@ -25,6 +25,8 @@ class Light {
     void brighten(bool brighten);
     void quell(bool quell);
     void pulse(bool pulse);
+    void on();
+    void off();
 };
 
 #endif

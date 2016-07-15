@@ -69,6 +69,10 @@ void Light::set_power(int power) {
   analogWrite(_pin, constrain( power, absolute_min_pwr, absolute_max_pwr ) );
 }
 
+// On and off set the light on and off as if it were a digital line.
+void Light::on()  { set_power(255); }
+void Light::off() { set_power(0);   }
+
 // If passed a true argument, makes everything brighter by boosting the minimum
 // brightness. If passed a false argument, decays the minimum brihgtness towards
 // its original value.
@@ -106,4 +110,3 @@ void Light::pulse(bool pulse) {
     _idle = 0;
   }
 }
-

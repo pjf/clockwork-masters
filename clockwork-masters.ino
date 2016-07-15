@@ -141,10 +141,10 @@ void setup() {
   // Also pulse our lines to test they're working.
   for (i=0; i < OUTPUTS; i++) {
     digitalWrite(PWR_LED, HIGH);
-    Lights[i]->set_power(255);
+    Lights[i]->on();
     delay(1000);
     digitalWrite(PWR_LED, LOW);
-    Lights[i]->set_power(0);
+    Lights[i]->off();
     delay(250);
   }
 
