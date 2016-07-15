@@ -7,7 +7,6 @@
 
 // Which dip switches should do what?
 #define DIP_SHOW_STATE 0
-#define DIP_ACCEL_TO_SPARKLE 3
 
 // Pins which we can do PWM on
 int LINE[OUTPUTS]       = { 3, 6, 9 };
@@ -23,11 +22,6 @@ int SLEEP = 10;
 
 // This just shows we're on. On most boards LED 13 is on the controller itself.
 int PWR_LED = 13;
-
-// Analog input lines. In our design these are hooked to an accelerometer, but
-// any analog input will do.
-#define ANALOG_INPUTS 3
-int ANALOG[ANALOG_INPUTS] = { 17, 18, 19 };
 
 // Digital inputs lines. In our design these are hooked to hall-effect sensors.
 // We expect these to be pulled LOW when activated. If they're not connected,
@@ -50,36 +44,8 @@ Sensor *Sensors[DIGITAL_INPUTS];
 #include "Dip.h"
 Dip *Dips[DIP_SWITCHES];
 
-// Accelerometer readings. These are used to keep state; changes in readings make us glow more.
-int ACCEL_LAST[3] = { 0, 0, 0 };
-
-// Accelerometer sensitivity. We divide all readings by this before adding.
-// DO NOT MAKE ZERO OR YOU WILL END THE UNIVERSE!
-#define ACCEL_SENSIT 8
-
-// Accelerometer deadzone. This means that small movements and thermal noise won't
-// be listened to, but allows larger movements to still be counted. The larger this
-// value, the larger a change in acceleration is required to register.
-#define ACCEL_DEADZONE 10
-
-// Sparkle added by accelerometer
-int Added_Sparkle = 0;
-
-// Each cycle, reduce sparkle by this percentage.
-#define SPARKLE_DECAY 1
-
-// Low and high readings that we see at rest on the accelerometer.
-// These don't really get used in our code anymore, and will be removed shortly.
-//
-// TODO: Remove these and the code that uses them.
-//
-// These are for the freetronics version
-// #define ACCEL_LOW 255
-// #define ACCEL_HIGH 755
-
-// These are zero scaling versions
-#define ACCEL_LOW 0
-#define ACCEL_HIGH 1023
+#include "Accelerometer.h"
+Accelerometer *accelerometer;
 
 // Which HES switches do what
 #define HFE_QUELL 0 // Turn lights off.
@@ -95,6 +61,8 @@ void setup() {
   const int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
   // DIP 1-4, 0 = Big board, 1 = Small board.
   const int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
+  const int ANALOG_INPUTS = 3;
+  pin_t ANALOG_PINS[ANALOG_INPUTS] = { 17, 18, 19 };
 
   // Set the power LED, so we can see we're running.
   pinMode(PWR_LED, OUTPUT);
@@ -106,10 +74,9 @@ void setup() {
     Lights[i] = new Light(LINE[i]);
   }
 
-  // Initialise the accelerometer pins
-  for (i = 0; i < ANALOG_INPUTS; i++) {
-    pinMode(ANALOG[i], INPUT);
-  }
+  // Accelerometer initialisation
+  
+  accelerometer = new Accelerometer(ANALOG_PINS);
 
   // And the sensor pins
   for (i = 0; i < DIGITAL_INPUTS; i++) {
@@ -120,12 +87,6 @@ void setup() {
   // And the dip-switches
   for (i = 0; i < DIP_SWITCHES; i++) {
     Dips[i] = new Dip(DIP[i]);
-  }
-
-  // Read starting values into our accelerometer tracker. These get scaled and constrainted to
-  // a 0-1023 range.
-  for (i = 0; i < ANALOG_INPUTS; i++) {
-    ACCEL_LAST[i] = constrain(map(analogRead(ANALOG[i]),ACCEL_LOW,ACCEL_HIGH,0,1023),0,1023);
   }
 
   // Init our serial monitor, so if a debugger is running it can see what we're doing.
@@ -185,32 +146,9 @@ void loop() {
 
   Serial.print("|| ");  
 
-  // Walk through our analog lines.
-  int potential_sparkle = 0;
+  // Nudge our accelerometer.
+  accelerometer->update();
   
-  for (i=0; i < ANALOG_INPUTS; i++) {
-    int val = analogRead(ANALOG[i]);
-    Serial.print(val);
-    Serial.print(" (");
-
-    // Munge our accel input to the full range of outputs.
-    int mapped = constrain(map(analogRead(ANALOG[i]),ACCEL_LOW,ACCEL_HIGH,0,1023),0,1023);
-
-    Serial.print(mapped);
-    Serial.print(") ");
-
-    // Add our difference to our potential sparkle.
-    potential_sparkle += abs(mapped - ACCEL_LAST[i]) / ACCEL_SENSIT;
-
-    // And save this as the last reading.
-    ACCEL_LAST[i] = mapped;
-  }
-
-  // Add our sparkle iff it's greater than our deadzone.
-  if (potential_sparkle > ACCEL_DEADZONE) {
-    Added_Sparkle += potential_sparkle;
-  }
-
   // Walk through our outputs, and adjust according to our sensors.
   for (i=0; i < OUTPUTS; i++) {
 
@@ -229,11 +167,8 @@ void loop() {
 
   // Now do our pulsing. This actually sets our light values.
   for (i = 0; i < OUTPUTS; i++) {
-    Lights[i]->update(Added_Sparkle);
+    Lights[i]->update(accelerometer->sparkle());
   }
-
-  // Decay our sparkle.
-  Added_Sparkle = max(0, ((Added_Sparkle * (100 - SPARKLE_DECAY))/100) - 1);
  
   delay(SLEEP);
 }

@@ -3,14 +3,18 @@
 
 #include "Types.h"
 
+#define ACCEL_AXES 3
+
 class Accelerometer {
   private:
-    int   _inputs;
-    pin_t *_input_pins;
-    int   *_last_values;
+    pin_t _input_pins[ACCEL_AXES];
+    int   _last_values[ACCEL_AXES];
+    int   _sparkle;
   
   public:
-    Accelerometer(int inputs, pin_t *input_pins);
+    Accelerometer(pin_t *input_pins);
+    void update();
+    int sparkle();
 };
 
 #endif
