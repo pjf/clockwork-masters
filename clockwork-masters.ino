@@ -47,8 +47,8 @@ Sensor *Sensors[DIGITAL_INPUTS];
 // to make sure they don't float.
 #define DIP_SWITCHES 6
 
-// DIP 1-4, 0 = Big board, 1 = Small board.
-int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
+#include "Dip.h"
+Dip *Dips[DIP_SWITCHES];
 
 // Accelerometer readings. These are used to keep state; changes in readings make us glow more.
 int ACCEL_LAST[3] = { 0, 0, 0 };
@@ -90,8 +90,11 @@ int Added_Sparkle = 0;
 void setup() {
 
   // These are now private to our setup, since everytyhing else
-  // should be using our sensor array.
-  int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
+  // should be using our objects.
+  
+  const int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
+  // DIP 1-4, 0 = Big board, 1 = Small board.
+  const int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
 
   // Set the power LED, so we can see we're running.
   pinMode(PWR_LED, OUTPUT);
@@ -110,14 +113,13 @@ void setup() {
 
   // And the sensor pins
   for (i = 0; i < DIGITAL_INPUTS; i++) {
-    
     // Sensors are objects, they do their own init.
     Sensors[i] = new Sensor(DIGITAL[i]);
   }
 
   // And the dip-switches
   for (i = 0; i < DIP_SWITCHES; i++) {
-    pinMode(DIP[i], INPUT_PULLUP);
+    Dips[i] = new Dip(DIP[i]);
   }
 
   // Read starting values into our accelerometer tracker. These get scaled and constrainted to
@@ -171,8 +173,7 @@ void loop() {
   // TODO: If we're reading these, we should be saving them too, rather than having direct
   // reads as part of the main loop.
   for (i=0; i < DIP_SWITCHES; i++) {
-    int dip = ! digitalRead(DIP[i]);
-    Serial.print(dip);
+    Serial.print(Dips[i]->activated());
     Serial.print(" ");
   }
 
@@ -180,15 +181,14 @@ void loop() {
   // based upon its value. We *do not* flip the logic here, as boards
   // without dip switches (using the pull-up only) should have their light set
   // on.
-  digitalWrite(PWR_LED, digitalRead(DIP[DIP_SHOW_STATE]));
+  digitalWrite(PWR_LED, Dips[DIP_SHOW_STATE]->activated());
 
   Serial.print("|| ");  
 
   // Walk through our analog lines.
-  // TODO: Count based on actual inputs, not 'OUTPUTS'! x_x
   int potential_sparkle = 0;
   
-  for (i=0; i < OUTPUTS; i++) {
+  for (i=0; i < ANALOG_INPUTS; i++) {
     int val = analogRead(ANALOG[i]);
     Serial.print(val);
     Serial.print(" (");
@@ -199,23 +199,11 @@ void loop() {
     Serial.print(mapped);
     Serial.print(") ");
 
-    // TODO: Just have the accelerometers add to sparkle.
-    // TODO: Have the switch DISABLE the accelerometer.
+    // Add our difference to our potential sparkle.
+    potential_sparkle += abs(mapped - ACCEL_LAST[i]) / ACCEL_SENSIT;
 
-    // Based upon the status of the 4th switch (3rd from zero), we either
-    // base our delay between pulses based on the accelerometer input (original
-    // testing program), or we have accelerometer values increase brightness of
-    // our lines.
-
-    if (DIP[DIP_ACCEL_TO_SPARKLE]) {
-      // Add our difference to our potential sparkle.
-      potential_sparkle += abs(mapped - ACCEL_LAST[i]) / ACCEL_SENSIT;
-
-      // And save this as the last reading.
-      ACCEL_LAST[i] = mapped;
-    }
-
-    // Otherwise our accelerometer does nothing.
+    // And save this as the last reading.
+    ACCEL_LAST[i] = mapped;
   }
 
   // Add our sparkle iff it's greater than our deadzone.
