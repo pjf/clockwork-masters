@@ -162,7 +162,7 @@ void loop() {
     light->quell( Sensors[HFE_QUELL]->activated() );
 
     // Pulse just causes any inactive lines to activate
-    light->pulse( Sensors[HFE_QUELL]->activated() );
+    light->pulse( Sensors[HFE_PULSE]->activated() );
   }  
 
   // Now do our pulsing. This actually sets our light values.
