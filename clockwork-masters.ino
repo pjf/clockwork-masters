@@ -58,7 +58,10 @@ int ANALOG[ANALOG_INPUTS] = { 17, 18, 19 };
 // We expect these to be pulled LOW when activated. If they're not connected,
 // then that's cool, we use the internal pull-up resistors to stop them floating.
 #define DIGITAL_INPUTS 4
-int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
+
+// Sensors array is initialised later.
+#include "Sensor.h"
+Sensor *Sensors[DIGITAL_INPUTS];
 
 // DIP switches
 // These are both physical switches and lines that might be soldered to ground to
@@ -90,12 +93,6 @@ int Added_Sparkle = 0;
 // Each cycle, reduce sparkle by this percentage.
 #define SPARKLE_DECAY 1
 
-// Working digital pins.
-// On at least one board, there's a faulty cable that causes sensors to start *on* (ie: grounded).
-// This diagnoses those and removes them from the circuit. It sucks losing a sensor, but it's better
-// than a faulty switch hitting us all the time.
-int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0 };
-
 // Low and high readings that we see at rest on the accelerometer.
 // These don't really get used in our code anymore, and will be removed shortly.
 //
@@ -117,6 +114,10 @@ int DIGITAL_FAULTY[DIGITAL_INPUTS] = { 0, 0, 0, 0 };
 // The setup routine runs once when our board is powered on.
 void setup() {
 
+  // These are now private to our setup, since everytyhing else
+  // should be using our sensor array.
+  int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
+
   // Set the power LED, so we can see we're running.
   pinMode(PWR_LED, OUTPUT);
   digitalWrite(PWR_LED, HIGH);
@@ -135,21 +136,14 @@ void setup() {
 
   // And the sensor pins
   for (i = 0; i < DIGITAL_INPUTS; i++) {
-    // Hall Effect Sensors are high for no magnets nearby. We pull
-    // the lines up anyway because our sensors may not be connected.
-    pinMode(DIGITAL[i], INPUT_PULLUP);
+    
+    // Sensors are objects, they do their own init.
+    Sensors[i] = new Sensor(DIGITAL[i]);
   }
 
   // And the dip-switches
   for (i = 0; i < DIP_SWITCHES; i++) {
     pinMode(DIP[i], INPUT_PULLUP);
-  }
-
-  // Test for faulty sensors. Any digital line that is LOW
-  // has a short and should not be used. This means it's important
-  // not to hold a magnet near a sensor while the board is turning on.
-  for (i = 0; i < DIGITAL_INPUTS; i++) {
-    DIGITAL_FAULTY[i] = ! digitalRead(DIGITAL[i]);
   }
 
   // Initalise our power levels.
@@ -196,7 +190,7 @@ void loop() {
   Serial.print("Sensor read is ");
 
   for (i=0; i < DIGITAL_INPUTS; i++) {
-    int sensor = digitalRead(DIGITAL[i]);
+    bool sensor = Sensors[i]->activated();
     Serial.print(sensor);
     Serial.print(" ");
   }
@@ -263,27 +257,28 @@ void loop() {
 
   Serial.print(" || PWR: ");
 
-  // Walk through our sensors, modified by each hall-effect sensor if we see them.
-  // TODO: This should be counting on sensor lines, not OUTPUTS! x_x
+  // Walk through our outputs. For each one, we'll be modifying based upon sensor readings, if needed.
+  // TODO: Invert this loop, so we check each sensor, and then walk through output lines if active?
+  //       It feels cleaner and easier to work with.
   for (i=0; i < OUTPUTS; i++) {
 
-    // Skip faulty lines.
-    if (DIGITAL_FAULTY[i]) {
-      Serial.print("FAULT ");
-      continue;
-    }
+    // We no longer need to skip faulty lines, because our sensors simply return
+    // false if they show faults.
 
     // Shine increases the min power to make everythng more bright.
-    if (!digitalRead(DIGITAL[HFE_SHINE])) {
+    if (Sensors[HFE_SHINE]->activated()) {
+      // Power-up!
       CURR_MIN_POWER[i] = min(MAX_POWER[i], CURR_MIN_POWER[i]+1);
     }
     else {
+      // Power-down
       CURR_MIN_POWER[i] = max(MIN_POWER[i], CURR_MIN_POWER[i]-1);
     }
 
     // Quell drops down the max power until it reaches zero,
     // and allows us to have a completely dark suit.
-    if (!digitalRead(DIGITAL[HFE_QUELL])) {
+    if (Sensors[HFE_QUELL]->activated()) {
+      // Quell
       CURR_MAX_POWER[i] = max(0, CURR_MAX_POWER[i]-1);
       CURR_MIN_POWER[i] = 0; // Quell lets us go completely dark.
     }
@@ -302,8 +297,7 @@ void loop() {
     // Pulse just causes any inactive lines to activate, and sets
     // everything to increase in brightness.
     // TODO: Increase the speed of pulses while these are active, maybe by bumping direction values.
-    if (!digitalRead(DIGITAL[HFE_PULSE])) {
-
+    if (Sensors[HFE_PULSE]->activated()) {
       // Flip direction if we were decaying.
       if (DIRECTION[i] < 0) {
         DIRECTION[i] = -DIRECTION[i];
