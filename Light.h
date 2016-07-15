@@ -22,6 +22,9 @@ class Light {
     Light(pin_t pin, int idle_min = 50, int idle_max = 200);
     void update(int bias);
     void set_power(int power);
+    void brighten(bool brighten);
+    void quell(bool quell);
+    void pulse(bool pulse);
 };
 
 #endif

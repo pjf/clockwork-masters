@@ -12,34 +12,9 @@
 // Pins which we can do PWM on
 int LINE[OUTPUTS]       = { 3, 6, 9 };
 
-// Starting values (brightness) and directions for each line.
-int VALUE[OUTPUTS]      = { 5, 5, 5  };
-int DIRECTION[OUTPUTS]  = { 1, 1, 1 };
-
-// Maximum value to count to per line.
-// Higher values = slower pulses
-int COUNT_TO[OUTPUTS]  = { 50, 50, 50 };
-
-// Min/Maximum power for each output.
-// 0 is entirely off, 255 is full power.
-int MIN_POWER[OUTPUTS]      = {  5,  5,  5  };
-int MAX_POWER[OUTPUTS]      = {  255, 255, 255 };
-
-// Current min/max power allows us the freedom to manipulate
-// power short-term.
-int CURR_MAX_POWER[OUTPUTS];
-int CURR_MIN_POWER[OUTPUTS];
-
-// Minimum and maximum delays between random pulses.
-// Zero means no delay, both the same means a fixed
-// delay.
-int RAND_DELAY_MIN[OUTPUTS]  = {  50,  50,  50 };
-int RAND_DELAY_MAX[OUTPUTS]  = { 200, 200, 200 };
-
-// If anything in here is non-zero, we decrement it
-// rather than incrementing or decrementing our pulse.
-// This gets set by our code.
-int RAND_DELAY_IDLE[OUTPUTS] = { 0, 0, 0 };
+// Lights are initialised later.
+#include "Light.h"
+Light *Lights[OUTPUTS];
 
 // Sleep time in between each run. Having this reduces flicker, or at least it did when running
 // on the LeoStick. Altering this can change the timing of everything else (lights, accelerometer,
@@ -124,9 +99,8 @@ void setup() {
   
   // Initialise the lighting pins as PWM output.
   int i;
-  for (i=0; i < OUTPUTS; i++) {    
-    pinMode(LINE[i], OUTPUT);     
-    analogWrite(LINE[i],0);
+  for (i=0; i < OUTPUTS; i++) {
+    Lights[i] = new Light(LINE[i]);
   }
 
   // Initialise the accelerometer pins
@@ -144,12 +118,6 @@ void setup() {
   // And the dip-switches
   for (i = 0; i < DIP_SWITCHES; i++) {
     pinMode(DIP[i], INPUT_PULLUP);
-  }
-
-  // Initalise our power levels.
-  for (i = 0; i < OUTPUTS; i++) {
-    CURR_MAX_POWER[i] = MAX_POWER[i];
-    CURR_MIN_POWER[i] = MIN_POWER[i];
   }
 
   // Read starting values into our accelerometer tracker. These get scaled and constrainted to
@@ -173,10 +141,10 @@ void setup() {
   // Also pulse our lines to test they're working.
   for (i=0; i < OUTPUTS; i++) {
     digitalWrite(PWR_LED, HIGH);
-    analogWrite(LINE[i], 255);
+    Lights[i]->set_power(255);
     delay(1000);
     digitalWrite(PWR_LED, LOW);
-    analogWrite(LINE[i], 0);
+    Lights[i]->set_power(0);
     delay(250);
   }
 
@@ -255,101 +223,25 @@ void loop() {
     Added_Sparkle += potential_sparkle;
   }
 
-  Serial.print(" || PWR: ");
-
-  // Walk through our outputs. For each one, we'll be modifying based upon sensor readings, if needed.
-  // TODO: Invert this loop, so we check each sensor, and then walk through output lines if active?
-  //       It feels cleaner and easier to work with.
+  // Walk through our outputs, and adjust according to our sensors.
   for (i=0; i < OUTPUTS; i++) {
 
-    // We no longer need to skip faulty lines, because our sensors simply return
-    // false if they show faults.
+    Light *light = Lights[i];
 
     // Shine increases the min power to make everythng more bright.
-    if (Sensors[HFE_SHINE]->activated()) {
-      // Power-up!
-      CURR_MIN_POWER[i] = min(MAX_POWER[i], CURR_MIN_POWER[i]+1);
-    }
-    else {
-      // Power-down
-      CURR_MIN_POWER[i] = max(MIN_POWER[i], CURR_MIN_POWER[i]-1);
-    }
+    light->brighten( Sensors[HFE_SHINE]->activated() );
 
     // Quell drops down the max power until it reaches zero,
     // and allows us to have a completely dark suit.
-    if (Sensors[HFE_QUELL]->activated()) {
-      // Quell
-      CURR_MAX_POWER[i] = max(0, CURR_MAX_POWER[i]-1);
-      CURR_MIN_POWER[i] = 0; // Quell lets us go completely dark.
-    }
-    else {
-      // Restore max power back upwards.
-      // TODO: Sunrise effect?
-      CURR_MAX_POWER[i] = min(MAX_POWER[i], CURR_MAX_POWER[i]+1);
+    light->quell( Sensors[HFE_QUELL]->activated() );
 
-      // If our line was underpowered (because we went dark) then
-      // bring it back towards its specified minimum.
-      if (CURR_MIN_POWER[i] < MIN_POWER[i]) {
-        CURR_MIN_POWER[i]++;
-      }
-    }
-
-    // Pulse just causes any inactive lines to activate, and sets
-    // everything to increase in brightness.
-    // TODO: Increase the speed of pulses while these are active, maybe by bumping direction values.
-    if (Sensors[HFE_PULSE]->activated()) {
-      // Flip direction if we were decaying.
-      if (DIRECTION[i] < 0) {
-        DIRECTION[i] = -DIRECTION[i];
-      }
-
-      // Activate line if not already active.
-      RAND_DELAY_IDLE[i] = 0;
-    }
-    
-    Serial.print(CURR_MIN_POWER[i]);
-    Serial.print("-");
-    Serial.print(CURR_MAX_POWER[i]);
-    Serial.print(" ");
+    // Pulse just causes any inactive lines to activate
+    light->pulse( Sensors[HFE_QUELL]->activated() );
   }  
-
-  Serial.print("\n");
 
   // Now do our pulsing. This actually sets our light values.
   for (i = 0; i < OUTPUTS; i++) {
-
-    // If we're idling, then simply decrement that counter and skip
-    // this line for now.
-    if (RAND_DELAY_IDLE[i] > 0) {
-      RAND_DELAY_IDLE[i]--;
-    }
-    
-    // Otherwise we're pulsing.
-    else {
-      VALUE[i] += DIRECTION[i];
-
-      // Constrain our value in, since other code can cause us to
-      // over or underrun.
-      VALUE[i] = constrain(VALUE[i], 0, COUNT_TO[i]);
-
-      // If we bump against either end, then flip direction.
-      if (VALUE[i] >= COUNT_TO[i] || VALUE[i] <= 0) {
-        DIRECTION[i] = -DIRECTION[i];
-        
-        // If we've just hit zero, then sleep
-        // this line for a random amount of time.
-        if (VALUE[i] <= 0) {
-          RAND_DELAY_IDLE[i] = random(RAND_DELAY_MIN[i], RAND_DELAY_MAX[i]);
-        }
-      }
-    }
-
-    // Either way, set the pin values even if we're sleeping, as
-    // sensor lines may have altered our values. We constrain this to 0-255
-    // as sparkle may overflow our max line values.
-
-    analogWrite(LINE[i], constrain(map(VALUE[i], 0, COUNT_TO[i], CURR_MIN_POWER[i], CURR_MAX_POWER[i])+Added_Sparkle,0,255));
-
+    Lights[i]->update(Added_Sparkle);
   }
 
   // Decay our sparkle.

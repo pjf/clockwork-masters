@@ -69,3 +69,41 @@ void Light::set_power(int power) {
   analogWrite(_pin, constrain( power, absolute_min_pwr, absolute_max_pwr ) );
 }
 
+// If passed a true argument, makes everything brighter by boosting the minimum
+// brightness. If passed a false argument, decays the minimum brihgtness towards
+// its original value.
+void Light::brighten(bool brighten) {
+  if (brighten) {
+    _curr_min_power = min(_max_power, _curr_min_power+1);
+  }
+  else {
+    _curr_min_power = max(_min_power, _curr_min_power-1);
+  }
+}
+
+// If passed a true argument, drop the max power down until it reaches zero.
+// This allows our suit to go competely dark. Otherwise restore power values
+// back to normal.
+void Light::quell(bool quell) {
+  if (quell) {
+    _curr_max_power = max(0, _curr_max_power-1);
+    _curr_min_power = 0;
+  }
+  else {
+    _curr_max_power = min(_max_power, _curr_max_power+1);
+
+    if (_curr_min_power < _min_power) {
+      _curr_min_power++;
+    }
+  }
+}
+
+// Causes lights to start a pulse if not already pulsing.
+// On a false argument, does nothing.
+// TODO: Have this *speed* pulses, too.
+void Light::pulse(bool pulse) {
+  if (pulse) {
+    _idle = 0;
+  }
+}
+
