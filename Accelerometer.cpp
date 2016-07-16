@@ -1,6 +1,11 @@
 #include "Accelerometer.h"
 #include <stdlib.h>
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
 #include "WProgram.h"
+#endif
 
 // Accelerometer sensitivity. We divide all readings by this before adding.
 // DO NOT MAKE ZERO OR YOU WILL END THE UNIVERSE!
