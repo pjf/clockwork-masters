@@ -3,13 +3,13 @@
 // You can use and/or distribute this code under the GPLv2 license.
 
 // How many output pins do we have?
-#define OUTPUTS 3
+const int OUTPUTS = 3;
 
 // Which dip switches should do what?
-#define DIP_SHOW_STATE 0
+const int DIP_SHOW_STATE = 0;
 
 // Pins which we can do PWM on
-int LINE[OUTPUTS]       = { 3, 6, 9 };
+int LINE[OUTPUTS] = { 3, 6, 9 };
 
 // Lights are initialised later.
 #include "Light.h"
@@ -18,15 +18,15 @@ Light *Lights[OUTPUTS];
 // Sleep time in between each run. Having this reduces flicker, or at least it did when running
 // on the LeoStick. Altering this can change the timing of everything else (lights, accelerometer,
 // quickness to react to sensor changes) so use with care.
-int SLEEP = 10;
+const int SLEEP = 10;
 
 // This just shows we're on. On most boards LED 13 is on the controller itself.
-int PWR_LED = 13;
+const int PWR_LED = 13;
 
 // Digital inputs lines. In our design these are hooked to hall-effect sensors.
 // We expect these to be pulled LOW when activated. If they're not connected,
 // then that's cool, we use the internal pull-up resistors to stop them floating.
-#define DIGITAL_INPUTS 4
+const int DIGITAL_INPUTS = 4;
 
 // Sensors array is initialised later.
 #include "Sensor.h"
@@ -39,7 +39,7 @@ Sensor *Sensors[DIGITAL_INPUTS];
 // the "last" on pin 20), and pins 0 and 1 are hooked to ground on our two boards that
 // are missing DIP switches entirely. Again, these can be unconnected; we use pull-ups
 // to make sure they don't float.
-#define DIP_SWITCHES 6
+const int DIP_SWITCHES = 6;
 
 #include "Dip.h"
 Dip *Dips[DIP_SWITCHES];
