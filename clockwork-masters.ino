@@ -98,19 +98,28 @@ void loop() {
     Light *light = board->Lights[i];
 
     // Shine increases the min power to make everythng more bright.
-    light->brighten( Sensors[HFE_SHINE]->activated() );
+    // If the shine sensor is active, OR if the pulse sensor is activated
+    // but pulse is disabled, then we'll add to shine. Otherwise
+    // we'll signal it to deactivate.
+
+    if (
+      Sensors[HFE_SHINE]->activated() ||
+      ( ( ! board->Pulse_Enabled ) && Sensors[HFE_PULSE]->activated() )
+    ) {
+      light->brighten( true );
+    }
+    else {
+      light->brighten( false );
+    }
 
     // Quell drops down the max power until it reaches zero,
     // and allows us to have a completely dark suit.
     light->quell( Sensors[HFE_QUELL]->activated() );
 
-    // Pulse just causes any inactive lines to activate if enabled
-    // Otherwise, we act like brighten/shine.
+    // If Pulse is enabled, then we'll run pulse mode, which simply
+    // removes the idle sections between pulses.
     if (board->Pulse_Enabled) {
       light->pulse( Sensors[HFE_PULSE]->activated() );
-    }
-    else {
-      light->brighten( Sensors[HFE_PULSE]->activated() );
     }
   }
 
