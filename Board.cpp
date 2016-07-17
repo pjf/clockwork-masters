@@ -107,10 +107,10 @@ void Board::update_dips() {
                 power_led( _dips[i]->activated() );
                 break;
             case Dip_Photography:
-                Photography = true;
+                Photography = _dips[i]->activated();
                 break;
             case Dip_Pulse_Enable:
-                Pulse_Enabled = true;
+                Pulse_Enabled = _dips[i]->activated();
                 break;
             ;
         }
