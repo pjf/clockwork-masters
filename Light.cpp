@@ -6,6 +6,14 @@
 #include "WProgram.h"
 #endif
 
+#include <math.h>
+
+// Helper function.
+// Just like regular map, only it works on doubles.
+double doubleMap(double x, double in_min, double in_max, double out_min, double out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 // Constructor
 Light::Light(pin_t pin, int idle_min, int idle_max) {
   _pin       = pin;
@@ -27,6 +35,12 @@ Light::Light(pin_t pin, int idle_min, int idle_max) {
 
 const int absolute_min_pwr = 0;
 const int absolute_max_pwr = 255;
+
+// Our lights follow a sin(x^n) curve with power. This
+// is the 'n' in that curve. Higher values cause a slower
+// initial increase in power, which compensates for the lights
+// having greater sensitivity at lower power levels.
+const double smoothing_power = 3;
 
 // Updates our light. Intended to be called once per cycle of main code.
 // Bias is added to all lines if provided.
@@ -69,9 +83,28 @@ void Light::_cycle() {
 // Sets power directly. Will not change internal state, so
 // this will be overwritten to the next call to update().
 //
+// TODO: Map this to a sin(x^n) function. This hits 1 (full power)
+// when x is the n'th root of pi/2.
+//
 // This auto-constrains to 0-255, but I'm not sure if we really need this.
-void Light::set_power(int power) {
-  analogWrite(_pin, constrain( power, absolute_min_pwr, absolute_max_pwr ) );
+void Light::set_power(int value) {
+
+  // This is our linear value. It just constrains us to 0-maximum power.
+  // Absolute minimum power is enforced later in this function.
+  int linear_value = constrain(value, 0, absolute_max_pwr);
+
+  // Now map this onto a sin(x^n) wave. Full power is reached at x = (pi/2)^(1/n),
+  // so we calculate that here.
+  double max_trig_value = pow(M_PI_2, 1/smoothing_power);
+
+  // Map our linear value onto an input suitable for handing to sin(x^n).
+  double smoothed_x = doubleMap(linear_value,0,absolute_max_pwr,0,max_trig_value);
+
+  // Pass that value through the smoothing function.
+  double smoothed_value = sin( pow(smoothed_x, smoothing_power) );
+
+  // Finally, map that output to our lights power.
+  analogWrite(_pin, doubleMap( smoothed_value, 0, 1, absolute_min_pwr, absolute_max_pwr ) );
 }
 
 // On and off set the light on and off as if it were a digital line.
@@ -115,3 +148,4 @@ void Light::pulse(bool pulse) {
     _idle = 0;
   }
 }
+
