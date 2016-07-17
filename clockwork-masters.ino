@@ -20,9 +20,6 @@ Light *Lights[OUTPUTS];
 // quickness to react to sensor changes) so use with care.
 const int SLEEP = 10;
 
-// This just shows we're on. On most boards LED 13 is on the controller itself.
-const int PWR_LED = 13;
-
 // Digital inputs lines. In our design these are hooked to hall-effect sensors.
 // We expect these to be pulled LOW when activated. If they're not connected,
 // then that's cool, we use the internal pull-up resistors to stop them floating.
@@ -36,16 +33,17 @@ Sensor *Sensors[DIGITAL_INPUTS];
 // These are both physical switches and lines that might be soldered to ground to
 // indicate particular configurations. In our case 23-20 are physical switches
 // (listed in reverse order because the "first" sitch on our board is on pin 23, and
-// the "last" on pin 20), and pins 0 and 1 are hooked to ground on our two boards that
-// are missing DIP switches entirely. Again, these can be unconnected; we use pull-ups
-// to make sure they don't float.
-const int DIP_SWITCHES = 6;
+// the "last" on pin 20)
+const int DIP_SWITCHES = 4;
 
 #include "Dip.h"
 Dip *Dips[DIP_SWITCHES];
 
 #include "Accelerometer.h"
 Accelerometer *accelerometer;
+
+#include "Board.h"
+Board *board;
 
 // Which HES switches do what
 #define HFE_QUELL 0 // Turn lights off.
@@ -55,19 +53,17 @@ Accelerometer *accelerometer;
 // The setup routine runs once when our board is powered on.
 void setup() {
 
+  // Board init comes first.
+  board = new Board();
+
   // These are now private to our setup, since everytyhing else
   // should be using our objects.
   
   const int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
-  // DIP 1-4, 0 = Big board, 1 = Small board.
-  const int DIP[DIP_SWITCHES] = { 23, 22, 21, 20, 0, 1 };
+  const int DIP[DIP_SWITCHES] = { 23, 22, 21, 20 };
   const int ANALOG_INPUTS = 3;
   pin_t ANALOG_PINS[ANALOG_INPUTS] = { 17, 18, 19 };
 
-  // Set the power LED, so we can see we're running.
-  pinMode(PWR_LED, OUTPUT);
-  digitalWrite(PWR_LED, HIGH);
-  
   // Initialise the lighting pins as PWM output.
   int i;
   for (i=0; i < OUTPUTS; i++) {
@@ -93,20 +89,18 @@ void setup() {
   Serial.begin(9600);
   Serial.print("Init complete");
 
-  // TODO: Skip all this if a DIP-switch tells us to.
-
   // Half a second after power on don't do anything, so
   // our humans can look at the line which may be faulty.
-  digitalWrite(PWR_LED, LOW);
+  board->power_led(LOW);
   delay(500);
 
   // Pulse our power light to show we're running.
   // Also pulse our lines to test they're working.
   for (i=0; i < OUTPUTS; i++) {
-    digitalWrite(PWR_LED, HIGH);
+    board->power_led(HIGH);
     Lights[i]->on();
     delay(1000);
-    digitalWrite(PWR_LED, LOW);
+    board->power_led(LOW);
     Lights[i]->off();
     delay(250);
   }
@@ -128,9 +122,6 @@ void loop() {
 
   Serial.print("DIP: ");
 
-  // NB, this FLIPS the bits as they come in. Our switches are connected
-  // to GND when they're on, but our logic here exports them as "True" when on.
-
   // TODO: If we're reading these, we should be saving them too, rather than having direct
   // reads as part of the main loop.
   for (i=0; i < DIP_SWITCHES; i++) {
@@ -142,7 +133,8 @@ void loop() {
   // based upon its value. We *do not* flip the logic here, as boards
   // without dip switches (using the pull-up only) should have their light set
   // on.
-  digitalWrite(PWR_LED, Dips[DIP_SHOW_STATE]->activated());
+  
+  board->power_led( Dips[DIP_SHOW_STATE]->activated() );
 
   Serial.print("|| ");  
 
