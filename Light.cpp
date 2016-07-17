@@ -1,5 +1,10 @@
 #include "Light.h"
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
 #include "WProgram.h"
+#endif
 
 // Constructor
 Light::Light(pin_t pin, int idle_min, int idle_max) {
