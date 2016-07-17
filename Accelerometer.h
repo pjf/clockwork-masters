@@ -1,5 +1,5 @@
 #ifndef ACCELEROMETER_H
-#define ACCELLEROMETER_H
+#define ACCELEROMETER_H
 
 #include "Types.h"
 
