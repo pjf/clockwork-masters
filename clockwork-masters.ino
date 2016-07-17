@@ -29,16 +29,6 @@ const int DIGITAL_INPUTS = 4;
 #include "Sensor.h"
 Sensor *Sensors[DIGITAL_INPUTS];
 
-// DIP switches
-// These are both physical switches and lines that might be soldered to ground to
-// indicate particular configurations. In our case 23-20 are physical switches
-// (listed in reverse order because the "first" sitch on our board is on pin 23, and
-// the "last" on pin 20)
-const int DIP_SWITCHES = 4;
-
-#include "Dip.h"
-Dip *Dips[DIP_SWITCHES];
-
 #include "Accelerometer.h"
 Accelerometer *accelerometer;
 
@@ -60,7 +50,6 @@ void setup() {
   // should be using our objects.
   
   const int DIGITAL[DIGITAL_INPUTS] = { 7, 10, 11, 12 };
-  const int DIP[DIP_SWITCHES] = { 23, 22, 21, 20 };
   const int ANALOG_INPUTS = 3;
   pin_t ANALOG_PINS[ANALOG_INPUTS] = { 17, 18, 19 };
 
@@ -78,11 +67,6 @@ void setup() {
   for (i = 0; i < DIGITAL_INPUTS; i++) {
     // Sensors are objects, they do their own init.
     Sensors[i] = new Sensor(DIGITAL[i]);
-  }
-
-  // And the dip-switches
-  for (i = 0; i < DIP_SWITCHES; i++) {
-    Dips[i] = new Dip(DIP[i]);
   }
 
   // Init our serial monitor, so if a debugger is running it can see what we're doing.
@@ -120,23 +104,10 @@ void loop() {
     Serial.print(" ");
   }
 
-  Serial.print("DIP: ");
-
-  // TODO: If we're reading these, we should be saving them too, rather than having direct
-  // reads as part of the main loop.
-  for (i=0; i < DIP_SWITCHES; i++) {
-    Serial.print(Dips[i]->activated());
-    Serial.print(" ");
-  }
-
-  // The state DIP switch is used for debugging. We show our power light
-  // based upon its value. We *do not* flip the logic here, as boards
-  // without dip switches (using the pull-up only) should have their light set
-  // on.
-  
-  board->power_led( Dips[DIP_SHOW_STATE]->activated() );
-
   Serial.print("|| ");  
+
+  // Update our behaviour based upon dip switches, if they exist on the board.
+  board->update_dips();
 
   // Nudge our accelerometer.
   accelerometer->update();
