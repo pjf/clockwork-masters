@@ -36,7 +36,7 @@ enum Dip_Function_t {
 const int Dip_Function[] = {
     Dip_Power_Led,
     Dip_Photography,
-    Dip_Unassigned,
+    Dip_Pulse_Enable,
     Dip_Unassigned
 };
 
@@ -94,7 +94,10 @@ void Board::update_dips() {
         return;
     }
 
-    Photography = false;
+    // Flip all our states to false. If our switches are
+    // set, they'll be flipped back on.
+    Pulse_Enabled = false;
+    Photography   = false;
 
     for (int i = 0; i < DIP_SWITCHES; i++) {
         switch (Dip_Function[i]) {
@@ -105,6 +108,9 @@ void Board::update_dips() {
                 break;
             case Dip_Photography:
                 Photography = true;
+                break;
+            case Dip_Pulse_Enable:
+                Pulse_Enabled = true;
                 break;
             ;
         }

@@ -104,8 +104,14 @@ void loop() {
     // and allows us to have a completely dark suit.
     light->quell( Sensors[HFE_QUELL]->activated() );
 
-    // Pulse just causes any inactive lines to activate
-    light->pulse( Sensors[HFE_PULSE]->activated() );
+    // Pulse just causes any inactive lines to activate if enabled
+    // Otherwise, we act like brighten/shine.
+    if (board->Pulse_Enabled) {
+      light->pulse( Sensors[HFE_PULSE]->activated() );
+    }
+    else {
+      light->brighten( Sensors[HFE_PULSE]->activated() );
+    }
   }
 
   // Now do our pulsing. This actually sets our light values.

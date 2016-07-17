@@ -17,7 +17,8 @@ class Board {
 
     public:
         Light *Lights[LIGHTS];
-        bool Photography = false; // Are we in photogrpahy mode?
+        bool Photography   = false; // Are we in photogrpahy mode?
+        bool Pulse_Enabled = false; // Does sensor 3 pulse rather than shine?
 
         Board();
         void power_led(int state);
