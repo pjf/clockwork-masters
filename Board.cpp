@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "Dip.h"
+#include "Light.h"
 
 // Board-dependent behaviour and sensing. In particular:
 // V1 boards have no dip switches, and pin 0 tied to ground.
@@ -17,24 +18,26 @@ const int V2_Board_Pin = 1;
 // Boards before this version don't have dip switches
 const int Min_Version_For_Switches = 3;
 
+const int Light_Pins[LIGHTS] = { 3, 6, 9 };
+
 // I wish I could use a vector here, but using <vector> causes the code to
 // not compile for the uno. Note that the Dip-pins are in "reverse" order,
 // because that means they correspond to the labelling (1-4) on the board itself.
-const int Dip_Pins[] = { 23, 22, 21, 20 };
+const int Dip_Pins[DIP_SWITCHES] = { 23, 22, 21, 20 };
 
 enum Dip_Function_t {
-    Unassigned,         // Does nothing!
-    Power_Led,          // Controls power LED; useful for testing
-    Photography,        // Sets photography mode
-    Pulse_Enable        // Sets sensor 3 to "pulse" rather than "shine"
+    Dip_Unassigned,         // Does nothing!
+    Dip_Power_Led,          // Controls power LED; useful for testing
+    Dip_Photography,        // Sets photography mode
+    Dip_Pulse_Enable        // Sets sensor 3 to "pulse" rather than "shine"
 };
 
 // What do each of the switches do?
 const int Dip_Function[] = {
-    Power_Led,
-    Unassigned,
-    Unassigned,
-    Unassigned
+    Dip_Power_Led,
+    Dip_Unassigned,
+    Dip_Unassigned,
+    Dip_Unassigned
 };
 
 // Constructor
@@ -68,6 +71,12 @@ Board::Board() {
     for (int i = 0; i < DIP_SWITCHES; i++) {
         _dips[i] = new Dip(Dip_Pins[i]);
     }
+
+    // Set up our lights
+
+    for (int i = 0; i < LIGHTS; i++) {
+        Lights[i] = new Light(Light_Pins[i]);
+    }
 }
 
 // Sets the power LED on or off.
@@ -76,6 +85,8 @@ void Board::power_led(int state) {
 }
 
 // Updates state based upon various dip switches.
+// In most cases this sets state (eg: photography mode) rather than
+// directly changing things. The Power LED is an exception.
 void Board::update_dips() {
 
     // If our board doesn't have dip switches, then do nothing.
@@ -83,12 +94,17 @@ void Board::update_dips() {
         return;
     }
 
+    Photography = false;
+
     for (int i = 0; i < DIP_SWITCHES; i++) {
         switch (Dip_Function[i]) {
-            case Unassigned:
+            case Dip_Unassigned:
                 break;
-            case Power_Led:
+            case Dip_Power_Led:
                 power_led( _dips[i]->activated() );
+                break;
+            case Dip_Photography:
+                Photography = true;
                 break;
             ;
         }

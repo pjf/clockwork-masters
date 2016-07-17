@@ -106,11 +106,17 @@ void loop() {
 
     // Pulse just causes any inactive lines to activate
     light->pulse( Sensors[HFE_PULSE]->activated() );
-  }  
+  }
 
   // Now do our pulsing. This actually sets our light values.
+  // If we're in photography mode, we just max them all out.
   for (i = 0; i < LIGHTS; i++) {
-    board->Lights[i]->update(accelerometer->sparkle());
+    if (board->Photography) {
+        board->Lights[i]->on();
+    }
+    else {
+        board->Lights[i]->update(accelerometer->sparkle());
+    }
   }
  
   delay(SLEEP);

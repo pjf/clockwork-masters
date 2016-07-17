@@ -17,6 +17,7 @@ class Board {
 
     public:
         Light *Lights[LIGHTS];
+        bool Photography = false; // Are we in photogrpahy mode?
 
         Board();
         void power_led(int state);
