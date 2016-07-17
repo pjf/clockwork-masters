@@ -11,7 +11,7 @@ Light::Light(pin_t pin, int idle_min, int idle_max) {
   _pin       = pin;
   _value     = 0;
   _direction = 1;
-  _count_to  = 50;
+  _count_to  = 200;
   _min_power = 5;
   _max_power = 255;
   _curr_max_power = _max_power;
