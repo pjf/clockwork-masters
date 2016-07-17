@@ -2,19 +2,6 @@
 // Paul '@pjf' Fenwick, 2016
 // You can use and/or distribute this code under the GPLv2 license.
 
-// How many output pins do we have?
-const int OUTPUTS = 3;
-
-// Which dip switches should do what?
-const int DIP_SHOW_STATE = 0;
-
-// Pins which we can do PWM on
-int LINE[OUTPUTS] = { 3, 6, 9 };
-
-// Lights are initialised later.
-#include "Light.h"
-Light *Lights[OUTPUTS];
-
 // Sleep time in between each run. Having this reduces flicker, or at least it did when running
 // on the LeoStick. Altering this can change the timing of everything else (lights, accelerometer,
 // quickness to react to sensor changes) so use with care.
@@ -53,18 +40,11 @@ void setup() {
   const int ANALOG_INPUTS = 3;
   pin_t ANALOG_PINS[ANALOG_INPUTS] = { 17, 18, 19 };
 
-  // Initialise the lighting pins as PWM output.
-  int i;
-  for (i=0; i < OUTPUTS; i++) {
-    Lights[i] = new Light(LINE[i]);
-  }
-
   // Accelerometer initialisation
-  
   accelerometer = new Accelerometer(ANALOG_PINS);
 
   // And the sensor pins
-  for (i = 0; i < DIGITAL_INPUTS; i++) {
+  for (int i = 0; i < DIGITAL_INPUTS; i++) {
     // Sensors are objects, they do their own init.
     Sensors[i] = new Sensor(DIGITAL[i]);
   }
@@ -80,12 +60,12 @@ void setup() {
 
   // Pulse our power light to show we're running.
   // Also pulse our lines to test they're working.
-  for (i=0; i < OUTPUTS; i++) {
+  for (int i=0; i < LIGHTS; i++) {
     board->power_led(HIGH);
-    Lights[i]->on();
+    board->Lights[i]->on();
     delay(1000);
     board->power_led(LOW);
-    Lights[i]->off();
+    board->Lights[i]->off();
     delay(250);
   }
 
@@ -113,9 +93,9 @@ void loop() {
   accelerometer->update();
   
   // Walk through our outputs, and adjust according to our sensors.
-  for (i=0; i < OUTPUTS; i++) {
+  for (i=0; i < LIGHTS; i++) {
 
-    Light *light = Lights[i];
+    Light *light = board->Lights[i];
 
     // Shine increases the min power to make everythng more bright.
     light->brighten( Sensors[HFE_SHINE]->activated() );
@@ -129,8 +109,8 @@ void loop() {
   }  
 
   // Now do our pulsing. This actually sets our light values.
-  for (i = 0; i < OUTPUTS; i++) {
-    Lights[i]->update(accelerometer->sparkle());
+  for (i = 0; i < LIGHTS; i++) {
+    board->Lights[i]->update(accelerometer->sparkle());
   }
  
   delay(SLEEP);

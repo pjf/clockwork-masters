@@ -3,9 +3,11 @@
 
 #include "Types.h"
 #include "Dip.h"
+#include "Light.h"
 
 // I wish this wasn't hard-coded.
 #define DIP_SWITCHES 4
+#define LIGHTS 3
 
 class Board {
     private:
@@ -14,6 +16,8 @@ class Board {
         Dip *_dips[DIP_SWITCHES];
 
     public:
+        Light *Lights[LIGHTS];
+
         Board();
         void power_led(int state);
         void update_dips();
