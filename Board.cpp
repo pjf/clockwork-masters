@@ -35,7 +35,7 @@ enum Dip_Function_t {
 // What do each of the switches do?
 const int Dip_Function[] = {
     Dip_Power_Led,
-    Dip_Unassigned,
+    Dip_Photography,
     Dip_Unassigned,
     Dip_Unassigned
 };
