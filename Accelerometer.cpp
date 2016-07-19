@@ -42,14 +42,12 @@ void Accelerometer::update() {
   
   for (int i=0; i < ACCEL_AXES; i++) {
     int val = analogRead(_input_pins[i]);
-    Serial.print(val);
-    Serial.print(" (");
 
     // Add our difference to our potential sparkle.
     potential_sparkle += abs(val - _last_values[i]) / Sensitivity;
 
     // And save this as the last reading.
-    _last_values[i] =val;
+    _last_values[i] = val;
   }
 
   // Add our sparkle iff it's greater than our deadzone.
