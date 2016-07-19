@@ -75,17 +75,6 @@ void setup() {
 void loop() {
   int i;
 
-  // Debug sensor lines.
-  Serial.print("Sensor read is ");
-
-  for (i=0; i < DIGITAL_INPUTS; i++) {
-    bool sensor = Sensors[i]->activated();
-    Serial.print(sensor);
-    Serial.print(" ");
-  }
-
-  Serial.print("|| ");  
-
   // Update our behaviour based upon dip switches, if they exist on the board.
   board->update_dips();
 
