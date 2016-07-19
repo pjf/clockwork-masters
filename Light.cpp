@@ -83,9 +83,6 @@ void Light::_cycle() {
 // Sets power directly. Will not change internal state, so
 // this will be overwritten to the next call to update().
 //
-// TODO: Map this to a sin(x^n) function. This hits 1 (full power)
-// when x is the n'th root of pi/2.
-//
 // This auto-constrains to 0-255, but I'm not sure if we really need this.
 void Light::set_power(int value) {
 
