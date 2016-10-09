@@ -29,7 +29,8 @@ enum Dip_Function_t {
     Dip_Unassigned,         // Does nothing!
     Dip_Power_Led,          // Controls power LED; useful for testing
     Dip_Photography,        // Sets photography mode
-    Dip_Pulse_Enable        // Sets sensor 3 to "pulse" rather than "shine"
+    Dip_Pulse_Enable,       // Sets sensor 3 to "pulse" rather than "shine"
+    Dip_POST_Disable        // Skip the Power-On Self-Test
 };
 
 // What do each of the switches do?
@@ -37,7 +38,7 @@ const int Dip_Function[] = {
     Dip_Power_Led,
     Dip_Photography,
     Dip_Pulse_Enable,
-    Dip_Unassigned
+    Dip_POST_Disable
 };
 
 // Constructor
@@ -77,6 +78,10 @@ Board::Board() {
     for (int i = 0; i < LIGHTS; i++) {
         Lights[i] = new Light(Light_Pins[i]);
     }
+
+    // Read our dip switches
+    update_dips();
+
 }
 
 // Sets the power LED on or off.
@@ -98,6 +103,7 @@ void Board::update_dips() {
     // set, they'll be flipped back on.
     Pulse_Enabled = false;
     Photography   = false;
+    POST_Disable  = false;
 
     for (int i = 0; i < DIP_SWITCHES; i++) {
         switch (Dip_Function[i]) {
@@ -111,6 +117,9 @@ void Board::update_dips() {
                 break;
             case Dip_Pulse_Enable:
                 Pulse_Enabled = _dips[i]->activated();
+                break;
+            case Dip_POST_Disable:
+                POST_Disable = _dips[i]->activated();
                 break;
             ;
         }

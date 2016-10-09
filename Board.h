@@ -19,6 +19,7 @@ class Board {
         Light *Lights[LIGHTS];
         bool Photography   = false; // Are we in photogrpahy mode?
         bool Pulse_Enabled = false; // Does sensor 3 pulse rather than shine?
+        bool POST_Disable  = false; // Skip the power-on self-test?
 
         Board();
         void power_led(int state);

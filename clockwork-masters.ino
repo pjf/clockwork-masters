@@ -53,22 +53,25 @@ void setup() {
   Serial.begin(9600);
   Serial.print("Init complete");
 
-  // Half a second after power on don't do anything, so
-  // our humans can look at the line which may be faulty.
-  board->power_led(LOW);
-  delay(500);
+  // If our POST routine isn't disabled, then do lights testing.
+  if (! board->POST_Disable) {
 
-  // Pulse our power light to show we're running.
-  // Also pulse our lines to test they're working.
-  for (int i=0; i < LIGHTS; i++) {
-    board->power_led(HIGH);
-    board->Lights[i]->on();
-    delay(1000);
+    // Half a second after power on don't do anything, so
+    // our humans can look at the line which may be faulty.
     board->power_led(LOW);
-    board->Lights[i]->off();
-    delay(250);
-  }
+    delay(500);
 
+    // Pulse our power light to show we're running.
+    // Also pulse our lines to test they're working.
+    for (int i=0; i < LIGHTS; i++) {
+        board->power_led(HIGH);
+        board->Lights[i]->on();
+        delay(1000);
+        board->power_led(LOW);
+        board->Lights[i]->off();
+        delay(250);
+    }
+  }
 }
 
 // Our main loop runs forever. Here's where all the fancy things happen.
